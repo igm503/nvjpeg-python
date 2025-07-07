@@ -30,8 +30,9 @@ nvjpegStatus_t nvjpeg_destroy(NvjpegHandle &handle) {
 
 nvjpegStatus_t nvjpeg_encoder_state_create(const NvjpegHandle &handle,
                                            NvjpegEncoderState &state,
-                                           cudaStream_t stream) {
-  return nvjpegEncoderStateCreate(handle.handle, &state.state, stream);
+                                           uintptr_t stream) {
+  return nvjpegEncoderStateCreate(handle.handle, &state.state,
+                                  reinterpret_cast<cudaStream_t>(stream));
 }
 
 nvjpegStatus_t nvjpeg_encoder_state_destroy(NvjpegEncoderState &state) {
@@ -40,8 +41,9 @@ nvjpegStatus_t nvjpeg_encoder_state_destroy(NvjpegEncoderState &state) {
 
 nvjpegStatus_t nvjpeg_encoder_params_create(const NvjpegHandle &handle,
                                             NvjpegEncoderParams &params,
-                                            cudaStream_t stream) {
-  return nvjpegEncoderParamsCreate(handle.handle, &params.params, stream);
+                                            uintptr_t stream) {
+  return nvjpegEncoderParamsCreate(handle.handle, &params.params,
+                                   reinterpret_cast<cudaStream_t>(stream));
 }
 
 nvjpegStatus_t nvjpeg_encoder_params_destroy(NvjpegEncoderParams &params) {
@@ -52,10 +54,10 @@ nvjpegStatus_t
 nvjpeg_encode_image(const NvjpegHandle &handle, const NvjpegEncoderState &state,
                     const NvjpegEncoderParams &params,
                     const NvjpegImage &source, nvjpegInputFormat_t input_format,
-                    int image_width, int image_height, cudaStream_t stream) {
-  return nvjpegEncodeImage(handle.handle, state.state, params.params,
-                           &source.image, input_format, image_width,
-                           image_height, stream);
+                    int image_width, int image_height, uintptr_t stream) {
+  return nvjpegEncodeImage(
+      handle.handle, state.state, params.params, &source.image, input_format,
+      image_width, image_height, reinterpret_cast<cudaStream_t>(stream));
 }
 
 void nvjpeg_image_set_channel(NvjpegImage &image, int channel_idx,
@@ -92,35 +94,39 @@ nvjpegStatus_t nvjpeg_encode_get_buffer_size(const NvjpegHandle &handle,
 nvjpegStatus_t
 nvjpeg_encode_retrieve_bitstream_size(const NvjpegHandle &handle,
                                       const NvjpegEncoderState &state,
-                                      size_t &length, cudaStream_t stream) {
+                                      size_t &length, uintptr_t stream) {
   return nvjpegEncodeRetrieveBitstream(handle.handle, state.state, nullptr,
-                                       &length, stream);
+                                       &length,
+                                       reinterpret_cast<cudaStream_t>(stream));
 }
 
 nvjpegStatus_t nvjpeg_encode_retrieve_bitstream(const NvjpegHandle &handle,
                                                 const NvjpegEncoderState &state,
                                                 unsigned char *data,
                                                 size_t &length,
-                                                cudaStream_t stream) {
+                                                uintptr_t stream) {
   return nvjpegEncodeRetrieveBitstream(handle.handle, state.state, data,
-                                       &length, stream);
+                                       &length,
+                                       reinterpret_cast<cudaStream_t>(stream));
 }
 
 nvjpegStatus_t
 nvjpeg_encoder_params_set_quality(const NvjpegEncoderParams &params,
-                                  int quality, cudaStream_t stream) {
-  return nvjpegEncoderParamsSetQuality(params.params, quality, stream);
+                                  int quality, uintptr_t stream) {
+  return nvjpegEncoderParamsSetQuality(params.params, quality,
+                                       reinterpret_cast<cudaStream_t>(stream));
 }
 
 nvjpegStatus_t nvjpeg_encoder_params_set_sampling_factors(
     const NvjpegEncoderParams &params,
-    nvjpegChromaSubsampling_t chroma_subsampling, cudaStream_t stream) {
-  return nvjpegEncoderParamsSetSamplingFactors(params.params,
-                                               chroma_subsampling, stream);
+    nvjpegChromaSubsampling_t chroma_subsampling, uintptr_t stream) {
+  return nvjpegEncoderParamsSetSamplingFactors(
+      params.params, chroma_subsampling,
+      reinterpret_cast<cudaStream_t>(stream));
 }
 
 NB_MODULE(nvjpeg_wrapper, m) {
-  m.doc() = "a very thin wrapper for nvjpeg library";
+  m.doc() = "Thin wrapper for nvjpeg library";
 
   nb::class_<NvjpegHandle>(m, "NvjpegHandle").def(nb::init<>());
 
