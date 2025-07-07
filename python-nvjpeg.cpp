@@ -4,113 +4,131 @@
 
 namespace nb = nanobind;
 
-nvjpegStatus_t nvjpeg_create_simple(nvjpegHandle_t &handle) {
-  return nvjpegCreateSimple(&handle);
+struct NvjpegHandle {
+  nvjpegHandle_t handle;
+};
+
+struct NvjpegEncoderState {
+  nvjpegEncoderState_t state;
+};
+
+struct NvjpegEncoderParams {
+  nvjpegEncoderParams_t params;
+};
+
+struct NvjpegImage {
+  nvjpegImage_t image;
+};
+
+nvjpegStatus_t nvjpeg_create_simple(NvjpegHandle &handle) {
+  return nvjpegCreateSimple(&handle.handle);
 }
 
-nvjpegStatus_t nvjpeg_destroy(nvjpegHandle_t handle) {
-  return nvjpegDestroy(handle);
+nvjpegStatus_t nvjpeg_destroy(NvjpegHandle &handle) {
+  return nvjpegDestroy(handle.handle);
 }
 
-nvjpegStatus_t nvjpeg_encoder_state_create(nvjpegHandle_t handle,
-                                           nvjpegEncoderState_t &state,
+nvjpegStatus_t nvjpeg_encoder_state_create(const NvjpegHandle &handle,
+                                           NvjpegEncoderState &state,
                                            cudaStream_t stream) {
-  return nvjpegEncoderStateCreate(handle, &state, stream);
+  return nvjpegEncoderStateCreate(handle.handle, &state.state, stream);
 }
 
-nvjpegStatus_t nvjpeg_encoder_state_destroy(nvjpegEncoderState_t state) {
-  return nvjpegEncoderStateDestroy(state);
+nvjpegStatus_t nvjpeg_encoder_state_destroy(NvjpegEncoderState &state) {
+  return nvjpegEncoderStateDestroy(state.state);
 }
 
-nvjpegStatus_t nvjpeg_encoder_params_create(nvjpegHandle_t handle,
-                                            nvjpegEncoderParams_t &params,
+nvjpegStatus_t nvjpeg_encoder_params_create(const NvjpegHandle &handle,
+                                            NvjpegEncoderParams &params,
                                             cudaStream_t stream) {
-  return nvjpegEncoderParamsCreate(handle, &params, stream);
+  return nvjpegEncoderParamsCreate(handle.handle, &params.params, stream);
 }
 
-nvjpegStatus_t nvjpeg_encoder_params_destroy(nvjpegEncoderParams_t params) {
-  return nvjpegEncoderParamsDestroy(params);
+nvjpegStatus_t nvjpeg_encoder_params_destroy(NvjpegEncoderParams &params) {
+  return nvjpegEncoderParamsDestroy(params.params);
 }
 
 nvjpegStatus_t
-nvjpeg_encode_image(nvjpegHandle_t handle, nvjpegEncoderState_t state,
-                    nvjpegEncoderParams_t params, const nvjpegImage_t &source,
-                    nvjpegInputFormat_t input_format, int image_width,
-                    int image_height, cudaStream_t stream) {
-  return nvjpegEncodeImage(handle, state, params, &source, input_format,
-                           image_width, image_height, stream);
+nvjpeg_encode_image(const NvjpegHandle &handle, const NvjpegEncoderState &state,
+                    const NvjpegEncoderParams &params,
+                    const NvjpegImage &source, nvjpegInputFormat_t input_format,
+                    int image_width, int image_height, cudaStream_t stream) {
+  return nvjpegEncodeImage(handle.handle, state.state, params.params,
+                           &source.image, input_format, image_width,
+                           image_height, stream);
 }
 
-void nvjpeg_image_set_channel(nvjpegImage_t &image, int channel_idx,
+void nvjpeg_image_set_channel(NvjpegImage &image, int channel_idx,
                               uintptr_t ptr, size_t pitch) {
   if (channel_idx >= 0 && channel_idx < NVJPEG_MAX_COMPONENT) {
-    image.channel[channel_idx] = reinterpret_cast<unsigned char *>(ptr);
-    image.pitch[channel_idx] = pitch;
+    image.image.channel[channel_idx] = reinterpret_cast<unsigned char *>(ptr);
+    image.image.pitch[channel_idx] = pitch;
   }
 }
 
-uintptr_t nvjpeg_image_get_channel_ptr(const nvjpegImage_t &image,
+uintptr_t nvjpeg_image_get_channel_ptr(const NvjpegImage &image,
                                        int channel_idx) {
   if (channel_idx >= 0 && channel_idx < NVJPEG_MAX_COMPONENT) {
-    return reinterpret_cast<uintptr_t>(image.channel[channel_idx]);
+    return reinterpret_cast<uintptr_t>(image.image.channel[channel_idx]);
   }
   return 0;
 }
 
-size_t nvjpeg_image_get_pitch(const nvjpegImage_t &image, int channel_idx) {
+size_t nvjpeg_image_get_pitch(const NvjpegImage &image, int channel_idx) {
   if (channel_idx >= 0 && channel_idx < NVJPEG_MAX_COMPONENT) {
-    return image.pitch[channel_idx];
+    return image.image.pitch[channel_idx];
   }
   return 0;
 }
 
-nvjpegStatus_t nvjpeg_encode_get_buffer_size(nvjpegHandle_t handle,
-                                             nvjpegEncoderParams_t params,
+nvjpegStatus_t nvjpeg_encode_get_buffer_size(const NvjpegHandle &handle,
+                                             const NvjpegEncoderParams &params,
                                              int image_width, int image_height,
                                              size_t &max_stream_length) {
-  return nvjpegEncodeGetBufferSize(handle, params, image_width, image_height,
-                                   &max_stream_length);
+  return nvjpegEncodeGetBufferSize(handle.handle, params.params, image_width,
+                                   image_height, &max_stream_length);
 }
 
-nvjpegStatus_t nvjpeg_encode_retrieve_bitstream_size(nvjpegHandle_t handle,
-                                                     nvjpegEncoderState_t state,
-                                                     size_t &length,
-                                                     cudaStream_t stream) {
-  return nvjpegEncodeRetrieveBitstream(handle, state, nullptr, &length, stream);
+nvjpegStatus_t
+nvjpeg_encode_retrieve_bitstream_size(const NvjpegHandle &handle,
+                                      const NvjpegEncoderState &state,
+                                      size_t &length, cudaStream_t stream) {
+  return nvjpegEncodeRetrieveBitstream(handle.handle, state.state, nullptr,
+                                       &length, stream);
 }
 
-nvjpegStatus_t nvjpeg_encode_retrieve_bitstream(nvjpegHandle_t handle,
-                                                nvjpegEncoderState_t state,
+nvjpegStatus_t nvjpeg_encode_retrieve_bitstream(const NvjpegHandle &handle,
+                                                const NvjpegEncoderState &state,
                                                 unsigned char *data,
                                                 size_t &length,
                                                 cudaStream_t stream) {
-  return nvjpegEncodeRetrieveBitstream(handle, state, data, &length, stream);
+  return nvjpegEncodeRetrieveBitstream(handle.handle, state.state, data,
+                                       &length, stream);
 }
 
-nvjpegStatus_t nvjpeg_encoder_params_set_quality(nvjpegEncoderParams_t params,
-                                                 int quality,
-                                                 cudaStream_t stream) {
-  return nvjpegEncoderParamsSetQuality(params, quality, stream);
+nvjpegStatus_t
+nvjpeg_encoder_params_set_quality(const NvjpegEncoderParams &params,
+                                  int quality, cudaStream_t stream) {
+  return nvjpegEncoderParamsSetQuality(params.params, quality, stream);
 }
 
 nvjpegStatus_t nvjpeg_encoder_params_set_sampling_factors(
-    nvjpegEncoderParams_t params, nvjpegChromaSubsampling_t chroma_subsampling,
-    cudaStream_t stream) {
-  return nvjpegEncoderParamsSetSamplingFactors(params, chroma_subsampling,
-                                               stream);
+    const NvjpegEncoderParams &params,
+    nvjpegChromaSubsampling_t chroma_subsampling, cudaStream_t stream) {
+  return nvjpegEncoderParamsSetSamplingFactors(params.params,
+                                               chroma_subsampling, stream);
 }
 
-NB_MODULE(pynvjpeg, m) {
+NB_MODULE(nvjpeg_wrapper, m) {
   m.doc() = "a very thin wrapper for nvjpeg library";
 
-  nb::class_<nvjpegHandle_t>(m, "nvjpegHandle_t").def(nb::init<>());
+  nb::class_<NvjpegHandle>(m, "NvjpegHandle").def(nb::init<>());
 
-  nb::class_<nvjpegEncoderState_t>(m, "nvjpegEncoderState_t").def(nb::init<>());
+  nb::class_<NvjpegEncoderState>(m, "NvjpegEncoderState").def(nb::init<>());
 
-  nb::class_<nvjpegEncoderParams_t>(m, "nvjpegEncoderParams_t")
-      .def(nb::init<>());
+  nb::class_<NvjpegEncoderParams>(m, "NvjpegEncoderParams").def(nb::init<>());
 
-  nb::class_<nvjpegImage_t>(m, "nvjpegImage_t").def(nb::init<>());
+  nb::class_<NvjpegImage>(m, "NvjpegImage").def(nb::init<>());
 
   nb::enum_<nvjpegStatus_t>(m, "nvjpegStatus_t")
       .value("SUCCESS", NVJPEG_STATUS_SUCCESS)
@@ -126,12 +144,10 @@ NB_MODULE(pynvjpeg, m) {
              NVJPEG_STATUS_IMPLEMENTATION_NOT_SUPPORTED);
 
   nb::enum_<nvjpegInputFormat_t>(m, "nvjpegInputFormat_t")
-      .value("YUV", NVJPEG_INPUT_YUV)
       .value("RGB", NVJPEG_INPUT_RGB)
       .value("BGR", NVJPEG_INPUT_BGR)
       .value("RGBI", NVJPEG_INPUT_RGBI)
-      .value("BGRI", NVJPEG_INPUT_BGRI)
-      .value("NV12", NVJPEG_INPUT_NV12);
+      .value("BGRI", NVJPEG_INPUT_BGRI);
 
   nb::enum_<nvjpegChromaSubsampling_t>(m, "nvjpegChromaSubsampling_t")
       .value("CSS_444", NVJPEG_CSS_444)
