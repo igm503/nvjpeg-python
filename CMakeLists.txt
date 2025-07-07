@@ -27,11 +27,11 @@ find_package(CUDAToolkit REQUIRED)
 
 nanobind_add_module(pynvjpeg python-nvjpeg.cpp)
 
-target_link_libraries(nvjpeg_wrapper PRIVATE 
+target_link_libraries(pynvjpeg PRIVATE 
     CUDA::nvjpeg
     CUDA::cudart
 )
 
-target_include_directories(nvjpeg_wrapper PRIVATE 
+target_include_directories(pynvjpeg PRIVATE 
     ${CUDAToolkit_INCLUDE_DIRS}
 )
