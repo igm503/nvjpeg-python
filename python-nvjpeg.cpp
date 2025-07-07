@@ -125,8 +125,8 @@ nvjpegStatus_t nvjpeg_encoder_params_set_sampling_factors(
       reinterpret_cast<cudaStream_t>(stream));
 }
 
-NB_MODULE(nvjpeg_wrapper, m) {
-  m.doc() = "Thin wrapper for nvjpeg library";
+NB_MODULE(pynvjpeg, m) {
+  m.doc() = "a very thin wrapper for nvjpeg library";
 
   nb::class_<NvjpegHandle>(m, "NvjpegHandle").def(nb::init<>());
 
