@@ -1,6 +1,8 @@
 #include <cuda_runtime.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/pair.h>
 #include <nvjpeg.h>
+#include <utility>
 
 namespace nb = nanobind;
 
@@ -20,30 +22,34 @@ struct NvjpegImage {
   nvjpegImage_t image;
 };
 
-nvjpegStatus_t nvjpeg_create_simple(NvjpegHandle &handle) {
-  return nvjpegCreateSimple(&handle.handle);
+std::pair<nvjpegStatus_t, NvjpegHandle> nvjpeg_create_simple() {
+  NvjpegHandle handle;
+  nvjpegStatus_t status = nvjpegCreateSimple(&handle.handle);
+  return {status, handle};
 }
 
 nvjpegStatus_t nvjpeg_destroy(NvjpegHandle &handle) {
   return nvjpegDestroy(handle.handle);
 }
 
-nvjpegStatus_t nvjpeg_encoder_state_create(const NvjpegHandle &handle,
-                                           NvjpegEncoderState &state,
-                                           uintptr_t stream) {
-  return nvjpegEncoderStateCreate(handle.handle, &state.state,
-                                  reinterpret_cast<cudaStream_t>(stream));
+std::pair<nvjpegStatus_t, NvjpegEncoderState>
+nvjpeg_encoder_state_create(const NvjpegHandle &handle, uintptr_t stream) {
+  NvjpegEncoderState state;
+  nvjpegStatus_t status = nvjpegEncoderStateCreate(
+      handle.handle, &state.state, reinterpret_cast<cudaStream_t>(stream));
+  return {status, state};
 }
 
 nvjpegStatus_t nvjpeg_encoder_state_destroy(NvjpegEncoderState &state) {
   return nvjpegEncoderStateDestroy(state.state);
 }
 
-nvjpegStatus_t nvjpeg_encoder_params_create(const NvjpegHandle &handle,
-                                            NvjpegEncoderParams &params,
-                                            uintptr_t stream) {
-  return nvjpegEncoderParamsCreate(handle.handle, &params.params,
-                                   reinterpret_cast<cudaStream_t>(stream));
+std::pair<nvjpegStatus_t, NvjpegEncoderParams>
+nvjpeg_encoder_params_create(const NvjpegHandle &handle, uintptr_t stream) {
+  NvjpegEncoderParams params;
+  nvjpegStatus_t status = nvjpegEncoderParamsCreate(
+      handle.handle, &params.params, reinterpret_cast<cudaStream_t>(stream));
+  return {status, params};
 }
 
 nvjpegStatus_t nvjpeg_encoder_params_destroy(NvjpegEncoderParams &params) {
@@ -83,28 +89,36 @@ size_t nvjpeg_image_get_pitch(const NvjpegImage &image, int channel_idx) {
   return 0;
 }
 
-nvjpegStatus_t nvjpeg_encode_get_buffer_size(const NvjpegHandle &handle,
-                                             const NvjpegEncoderParams &params,
-                                             int image_width, int image_height,
-                                             size_t &max_stream_length) {
-  return nvjpegEncodeGetBufferSize(handle.handle, params.params, image_width,
-                                   image_height, &max_stream_length);
+std::pair<nvjpegStatus_t, size_t>
+nvjpeg_encode_get_buffer_size(const NvjpegHandle &handle,
+                              const NvjpegEncoderParams &params,
+                              int image_width, int image_height) {
+  size_t max_stream_length;
+  nvjpegStatus_t status =
+      nvjpegEncodeGetBufferSize(handle.handle, params.params, image_width,
+                                image_height, &max_stream_length);
+  return {status, max_stream_length};
 }
 
-nvjpegStatus_t
+std::pair<nvjpegStatus_t, size_t>
 nvjpeg_encode_retrieve_bitstream_size(const NvjpegHandle &handle,
                                       const NvjpegEncoderState &state,
-                                      size_t &length, uintptr_t stream) {
-  return nvjpegEncodeRetrieveBitstream(handle.handle, state.state, nullptr,
-                                       &length,
-                                       reinterpret_cast<cudaStream_t>(stream));
+                                      uintptr_t stream) {
+  size_t length = 0;
+  nvjpegStatus_t status =
+      nvjpegEncodeRetrieveBitstream(handle.handle, state.state, NULL, &length,
+                                    reinterpret_cast<cudaStream_t>(stream));
+  return {status, length};
 }
 
 nvjpegStatus_t nvjpeg_encode_retrieve_bitstream(const NvjpegHandle &handle,
                                                 const NvjpegEncoderState &state,
-                                                unsigned char *data,
+                                                uintptr_t data_ptr,
                                                 size_t &length,
                                                 uintptr_t stream) {
+
+  unsigned char *data = reinterpret_cast<unsigned char *>(data_ptr);
+
   return nvjpegEncodeRetrieveBitstream(handle.handle, state.state, data,
                                        &length,
                                        reinterpret_cast<cudaStream_t>(stream));
