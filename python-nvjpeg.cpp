@@ -100,6 +100,18 @@ nvjpeg_encode_get_buffer_size(const NvjpegHandle &handle,
   return {status, max_stream_length};
 }
 
+std::pair<nvjpegStatus_t, size_t> nvjpeg_encode_retrieve_bitstream_with_size(
+    const NvjpegHandle &handle, const NvjpegEncoderState &state,
+    uintptr_t data_ptr, size_t buffer_size, uintptr_t stream) {
+  size_t actual_length = buffer_size;
+
+  nvjpegStatus_t status = nvjpegEncodeRetrieveBitstream(
+      handle.handle, state.state, reinterpret_cast<unsigned char *>(data_ptr),
+      &actual_length, reinterpret_cast<cudaStream_t>(stream));
+
+  return {status, actual_length};
+}
+
 std::pair<nvjpegStatus_t, size_t>
 nvjpeg_encode_retrieve_bitstream_size(const NvjpegHandle &handle,
                                       const NvjpegEncoderState &state,
@@ -190,6 +202,9 @@ NB_MODULE(pynvjpeg, m) {
   m.def("nvjpeg_image_get_channel_ptr", &nvjpeg_image_get_channel_ptr);
   m.def("nvjpeg_image_get_pitch", &nvjpeg_image_get_pitch);
   m.def("nvjpeg_encode_get_buffer_size", &nvjpeg_encode_get_buffer_size);
+  m.def("nvjpeg_encode_retrieve_bitstream_with_size",
+        &nvjpeg_encode_retrieve_bitstream_with_size);
+
   m.def("nvjpeg_encode_retrieve_bitstream_size",
         &nvjpeg_encode_retrieve_bitstream_size);
   m.def("nvjpeg_encode_retrieve_bitstream", &nvjpeg_encode_retrieve_bitstream);
