@@ -1,12 +1,10 @@
 # nvjpeg-python
 
 `pynvjpeg` is a transparent 1:1 Python binding of the NVIDIA nvJPEG C API. Use it to
-write low-level nvJPEG code (custom pipelines, stream/phase control, batching, your
-own memory management) without writing C++.
+write low-level nvJPEG code without writing C++.
 
-There are no wrapper classes and no hidden synchronization or allocation. If you
-know the C API, you already know this one. Every function in `nvjpeg.h` (81 of them
-in nvJPEG 13.0) is bound, and `tests/test_api.py::test_every_header_function_is_bound`
+There are no wrapper classes and no hidden synchronization or allocation. Every function
+in `nvjpeg.h` is bound, and `tests/test_api.py::test_every_header_function_is_bound`
 checks the header against the module.
 
 ## Build / install
@@ -37,9 +35,9 @@ PYTHONPATH=build python -m pytest tests          # needs a GPU, torch, numpy, op
 | allocator structs | `NvjpegDevAllocator`, `NvjpegPinnedAllocator`, `…V2`: fields are C function-pointer addresses (from `ctypes`); pass `None` for the default |
 | enums / `#define`s | `nvjpegStatus_t.SUCCESS`, `nvjpegOutputFormat_t.RGBI`, `NVJPEG_FLAGS_ENABLE_MEMORY_POOLS`, … |
 
-Errors are **status codes, not exceptions**, as in C. Python exceptions are raised
-only for misuse that C can't express: a wrong type, a channel index out of range,
-mismatched list lengths, or a pointer without `length`.
+Errors are **status codes**, as in C. Python exceptions are raised only for misuse
+that C can't express: a wrong type, a channel index out of range, mismatched list
+lengths, or a pointer without `length`.
 
 Lifetimes are explicit. Call the matching `*_destroy`, which resets the object's
 `.ptr` to 0. Destroying a NULL object returns `INVALID_PARAMETER`; it doesn't crash.
@@ -89,30 +87,9 @@ the API: batched decode, the decoupled host/transfer/device phases with attached
 pinned/device buffers, ROI decode, `nvjpegEncodeYUV`, NV12 via `nvjpegEncode`,
 device-side bitstream retrieval, quant-table copying, and custom allocators.
 
-## nvJPEG behaviors worth knowing
+## Warning
 
-These were all observed with nvJPEG 13.0 on an RTX 5090. Where it matters, they
-were confirmed with plain C, so they come from the library, not the binding.
-
-- **Encoder params need sampling factors.** A fresh `NvjpegEncoderParams` gives
-  `INVALID_PARAMETER` from `nvjpeg_encode_image` until you call
-  `nvjpeg_encoder_params_set_sampling_factors`.
-- **An encoded bitstream can be fully retrieved only once.** After one
-  `nvjpeg_encode_retrieve_bitstream[_device]` with a data pointer, a second one
-  returns garbage. Size queries (`data=0`) don't consume it.
-- **`nvjpeg_encode_image` blocks the calling thread** until its stream reaches it.
-  After that, the size query needs no extra sync.
-- **The GPU encoder ignores `set_restart_interval`.** It accepts the value but
-  emits no DRI/RST markers.
-- **Hardware backends:** the RTX 5090 has 1 hardware JPEG *decode* engine
-  (`nvjpegBackend_t.HARDWARE` works) and no hardware *encoder*
-  (`nvjpeg_encoder_state_create_with_backend(..., HARDWARE)` → `ARCH_MISMATCH`).
-- **Handle-level allocators** (`nvjpeg_create[_ex[_v2]]`) are accepted, but
-  `nvjpeg_decode` didn't call them. Allocators passed to
-  `nvjpeg_buffer_*_create[_v2]` are called.
-- **`nvjpeg_jpeg_stream_parse(..., save_stream=0, ...)`** keeps a pointer to your
-  `data` instead of copying it. Keep that buffer alive and unchanged until the
-  decode finishes.
-- `nvjpeg_jpeg_stream_parse_tables` / `nvjpeg_decode_batched_parse_jpeg_tables`
-  expect a *tables-only* JPEG (SOI + DQT/DHT + EOI), used with abbreviated image
-  streams.
+nvJPEG itself has some strange behaviors. If it's a problem in nvJPEG, it will be
+a problem in nvjpeg-python. This library is not something I would recommend using
+for normal projects, unless you could already do it in C++ but don't want to make
+bindings yourself. Examples:
