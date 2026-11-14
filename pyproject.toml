@@ -1,0 +1,22 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pynvjpeg"
+version = "0.2.0"
+description = "A transparent 1:1 Python binding of the NVIDIA nvJPEG C API"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+test = ["pytest", "numpy", "opencv-python", "torch"]
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+build-dir = "build/{wheel_tag}"
+wheel.py-api = ""
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
